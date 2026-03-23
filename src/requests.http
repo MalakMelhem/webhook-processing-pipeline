@@ -1,0 +1,23 @@
+### Create pipeline
+POST http://localhost:8080/pipelines
+Content-Type: application/json
+
+{
+  "pipelineName": "test_pipeline",
+  "webhookUrl": "/webhook/test"
+}
+
+### Read pipeline
+GET http://localhost:8080/pipelines/test_pipeline
+
+### Update pipeline
+PUT http://localhost:8080/pipelines/1
+Content-Type: application/json
+
+{
+  "pipelineName": "updated_pipeline",
+  "webhookUrl": "/webhook/updated"
+}
+
+### Delete pipeline
+DELETE http://localhost:8080/pipelines/1
