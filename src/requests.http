@@ -4,20 +4,31 @@ Content-Type: application/json
 
 {
   "pipelineName": "test_pipeline",
-  "webhookUrl": "/webhook/test"
+  "webhookUrl": "test"
 }
 
 ### Read pipeline
-GET http://localhost:8080/pipelines/test_pipeline
+GET http://localhost:8080/pipelines/4
 
 ### Update pipeline
-PUT http://localhost:8080/pipelines/1
+PUT http://localhost:8080/pipelines/4
 Content-Type: application/json
 
 {
-  "pipelineName": "updated_pipeline",
-  "webhookUrl": "/webhook/updated"
+  "pipelineName": "test_pipeline",
+  "webhookUrl": "test3"
 }
 
 ### Delete pipeline
-DELETE http://localhost:8080/pipelines/1
+DELETE http://localhost:8080/pipelines/3
+
+### Add a job
+POST http://localhost:8080/webhooks/test
+Content-Type: application/json
+
+{
+  "payload": {
+    "message": "Hello from webhook",
+    "value": 123
+  }
+}

@@ -13,9 +13,9 @@ export async function createSubscriber(pipelineId:string, subscriberUrl:string){
     const values =[pipelineId,subscriberUrl,createdTime];
     const result=await pool.query(query,values);
 }
-export async function getPipleline(name: string) {
-    const query = 'SELECT * FROM pipelines WHERE pipeline_name = $1';
-    const result=await pool.query(query,[name]);
+export async function getPipleline(id: string) {
+    const query = 'SELECT * FROM pipelines WHERE id = $1';
+    const result=await pool.query(query,[id]);
     return result.rows[0];
 }
 export async function updatePipleline(id: string, pipelineName: string, webhookUrl: string){
@@ -28,4 +28,17 @@ export async function deletePipleline(id: string){
    const query = 'DELETE FROM pipelines WHERE id = $1 RETURNING *; ';
    const result=await pool.query(query,[id]);
    return result.rows[0];
+}
+
+export async function createJob(pipelineId: string, payload: object){
+    const createdTime = new Date().toISOString(); 
+    const query ='INSERT INTO jobs (pipeline_id, payload, created_time) VALUES ($1,$2,$3) RETURNING * ;';
+    const values =[pipelineId ,payload, createdTime ];
+    const result=await pool.query(query,values);
+    return result.rows[0];
+}
+export async function getPipelineId(webhookUrl: string) {
+    const query = 'SELECT id FROM pipelines WHERE webhook_url = $1';
+    const result=await pool.query(query,[webhookUrl]);
+    return result.rows[0]?.id;
 }

@@ -1,7 +1,7 @@
 CREATE TABLE pipelines (
     id SERIAL PRIMARY KEY,
     pipeline_name VARCHAR(100) NOT NULL,
-    webhook_url TEXT NOT NULL,
+    webhook_url TEXT NOT NULL UNIQUE,
     created_time TIMESTAMP DEFAULT NOW()
 );
 CREATE TABLE subscribers (
