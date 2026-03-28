@@ -1,15 +1,15 @@
-import { getNextJob, markJobAsCompleted, markJobAsFailed } from "./db/queries.js";
+import { getNextJob, markJobAsCompleted, markJobAsFailed, getSubscribers, markDelivered, markFailed} from "./db/queries.js";
 import { addData, transformData, filterData} from "./actions.js";
 
-const POLL_INTERVAL = 3 * 60 * 1000; // 3 minutes
+const POLL_INTERVAL = 0.5 * 60 * 1000; 
 
 async function pollTask() {
     try{
-   
+
     console.log("Running query script...");
     
     // Perform async task (e.g., DB query)
-    const job= await getNextJob();
+    let job= await getNextJob();
 
     if(!job){
     console.log("No jobs found");
@@ -17,17 +17,25 @@ async function pollTask() {
     }
     console.log(`Processing job ${job.id} with action ${job.actions}`);
     try{
-    const resultData=runPipeline(job); 
+    const resultData= await runPipeline(job); 
 
-    if ( Object.keys(resultData).length === 0) {
-    await markJobAsFailed(job.id, "Filtered out");
+    if ( !resultData ||Object.keys(resultData).length === 0) {
+    await markJobAsFailed(job.id, "Filtered out or no result");
     return;
     }    
     
-    await markJobAsCompleted(job.id, resultData);
+    job=await markJobAsCompleted(job.id, resultData);
+    const subscribers = await getSubscribers(job.pipeline_id);
+    console.log(subscribers);
+    if(!subscribers || subscribers.length === 0){
+        return;
+    }else{
+       await deliverJob(subscribers,job,1);
+
+    }
 
     } catch (err: any) {
-    await markJobAsFailed(job.id, err.message);
+    job=await markJobAsFailed(job.id, err.message);
   
     }
 
@@ -42,16 +50,19 @@ async function pollTask() {
 
 
 // Start the first poll
-// setTimeout(pollTask, POLL_INTERVAL);
+setTimeout(pollTask, POLL_INTERVAL);
 
 // Start immediately
-pollTask();
+// pollTask();
 
-function runPipeline(job:any): any{   
+async function runPipeline(job:any):Promise<any>{   
 let data=job.payload;
+
 if (!job.actions || job.actions.length === 0) {
-    throw new Error("No actions defined for pipeline");
+    console.log("No actions defined for pipeline");
+    return data;
 }
+
 for(const action of job.actions){
  switch (action) {
         case "filter":
@@ -66,5 +77,51 @@ for(const action of job.actions){
         }
     }
     return data;
+}
+
+async function deliverJob(subscribers:any,job:any, attempts:number) {
+    let failedSubscribers:any[]=[];
+
+    for (const subscriber of subscribers){
+    try{
+    const res= await sendHttpReq(subscriber,job.result); 
+        if(res.ok){
+        console.log(`Delivered to subscriber ${subscriber.id}`);       
+        await markDelivered(job.id,subscriber.id);
+        }else{
+            failedSubscribers.push(subscriber);
+        }
+    }catch(err:any){
+     console.error(err.message);
+     failedSubscribers.push(subscriber);
+    }   
+    } 
+     // retry
+    if(failedSubscribers.length>0 && attempts < 3){
+    console.log(`Retry attempt ${attempts + 1} for job ${job.id}`);
+    await sleep(2000); 
+    await deliverJob(failedSubscribers, job, attempts+1) 
+    }
+     // mark final failures
+    if (attempts >= 3){
+        for (const subscriber of failedSubscribers)
+        await markFailed(job.id, subscriber.id);   
+    }
+
+}
+
+
+
+async function sendHttpReq(subscriber:any, result:any){
+    const res=await fetch(subscriber.subscriber_url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(result),
+    }); 
+    return res;
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 

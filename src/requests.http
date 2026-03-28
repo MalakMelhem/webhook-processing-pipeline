@@ -3,15 +3,16 @@ POST http://localhost:8080/pipelines
 Content-Type: application/json
 
 {
-  "pipelineName": "test_pipeline",
-  "webhookUrl": "test"
+  "pipelineName": "test_30",
+  "webhookUrl": "test-30",
+  "actions": ["filter", "transform", "add"]
 }
 
 ### Read pipeline
-GET http://localhost:8080/pipelines/4
+GET http://localhost:8080/pipelines/3
 
 ### Update pipeline
-PUT http://localhost:8080/pipelines/4
+PUT http://localhost:8080/pipelines/1
 Content-Type: application/json
 
 {
@@ -23,12 +24,34 @@ Content-Type: application/json
 DELETE http://localhost:8080/pipelines/3
 
 ### Add a job
-POST http://localhost:8080/webhooks/test
+POST http://localhost:8080/webhooks/test-30
 Content-Type: application/json
 
 {
   "payload": {
-    "message": "Hello from webhook",
-    "value": 123
+    "message": "Hello there",
+    "value": 29,
+    "name": "lala",
+    "email": "lala@gmail.com",
+    "age": 80,
+    "score": 400
   }
 }
+
+### Add subscriber
+POST http://localhost:8080/subscribers
+Content-Type: application/json
+
+{
+  "pipelineId": 3,
+  "subscriberUrl": "http://localhost:3000/test-subscriber2"
+}
+
+### Checking jobs
+GET http://localhost:8080/jobs
+
+### Read job
+GET http://localhost:8080/jobs/31
+
+###Check deliveries
+GET http://localhost:8080/deliveries

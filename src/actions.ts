@@ -1,7 +1,11 @@
 
 export function addData(payload: any){
+console.log("filterData input:", payload);
 const insertionTime = new Date().toISOString(); 
-return {...payload, insertionTime}; 
+
+const result= {...payload, insertionTime}; 
+console.log("filterData output:", result);
+return result;
 }
 
 export function transformData(payload: any){
@@ -13,9 +17,9 @@ Object.keys(obj).forEach(key => {
     obj[newKey] = obj[key]; 
     delete obj[key]; 
     } 
-return obj;  
+ 
 });
-
+  return obj; 
 }
 
 export function filterData(payload: any){
