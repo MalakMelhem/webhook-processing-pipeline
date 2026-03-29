@@ -1,4 +1,6 @@
-import { getNextJob, markJobAsCompleted, markJobAsFailed, getSubscribers, markDelivered, markFailed} from "./db/queries.js";
+import { getNextJob, markJobAsCompleted, markJobAsFailed, 
+    getSubscribers, markDelivered, markFailed,
+     deliveryAttempts} from "./db/queries.js";
 import { addData, transformData, filterData} from "./actions.js";
 
 const POLL_INTERVAL = 0.5 * 60 * 1000; 
@@ -30,7 +32,7 @@ async function pollTask() {
     if(!subscribers || subscribers.length === 0){
         return;
     }else{
-       await deliverJob(subscribers,job,1);
+       await deliverJob(subscribers,job);
 
     }
 
@@ -79,37 +81,49 @@ for(const action of job.actions){
     return data;
 }
 
-async function deliverJob(subscribers:any,job:any, attempts:number) {
-    let failedSubscribers:any[]=[];
+async function deliverJob(subscribers: any, job: any) {
+  let failedSubscribers: any[] = [];
 
-    for (const subscriber of subscribers){
-    try{
-    const res= await sendHttpReq(subscriber,job.result); 
-        if(res.ok){
-        console.log(`Delivered to subscriber ${subscriber.id}`);       
-        await markDelivered(job.id,subscriber.id);
-        }else{
-            failedSubscribers.push(subscriber);
+  for (const subscriber of subscribers) {
+    try {
+      const res = await sendHttpReq(subscriber, job.result);
+      const delivery = await deliveryAttempts(job.id, subscriber.id);
+
+      if (res.ok) {
+        console.log(`Delivered to subscriber ${subscriber.id}`);
+        await markDelivered(job.id, subscriber.id);
+
+      } else {
+        console.log(`Failed delivery to subscriber ${subscriber.id}, attempt ${delivery.attempts}`);
+
+        if (delivery.attempts >= 3) {
+          await markFailed(job.id, subscriber.id);
+        } else {
+          failedSubscribers.push(subscriber);
         }
-    }catch(err:any){
-     console.error(err.message);
-     failedSubscribers.push(subscriber);
-    }   
-    } 
-     // retry
-    if(failedSubscribers.length>0 && attempts < 3){
-    console.log(`Retry attempt ${attempts + 1} for job ${job.id}`);
-    await sleep(2000); 
-    await deliverJob(failedSubscribers, job, attempts+1) 
-    }
-     // mark final failures
-    if (attempts >= 3){
-        for (const subscriber of failedSubscribers)
-        await markFailed(job.id, subscriber.id);   
-    }
+      }
 
+    } catch (err: any) {
+      console.error(`Error for subscriber ${subscriber.id}: ${err.message}`);
+
+      const delivery = await deliveryAttempts(job.id, subscriber.id);
+
+      if (delivery.attempts >= 3) {
+        await markFailed(job.id, subscriber.id);
+      } else {
+        failedSubscribers.push(subscriber);
+      }
+    }
+  }
+
+  // retry
+  console.log(`failedSubscribers:`,failedSubscribers);
+  if (failedSubscribers.length > 0) {
+    console.log(`Retrying ${failedSubscribers.length} subscribers...`);
+    await sleep(2000);
+    await deliverJob(failedSubscribers, job);
+  }
 }
-
 
 
 async function sendHttpReq(subscriber:any, result:any){

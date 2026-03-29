@@ -29,12 +29,12 @@ Content-Type: application/json
 
 {
   "payload": {
-    "message": "Hello there",
-    "value": 29,
+    "message": "Hi from job testing-30",
+    "value": 69,
     "name": "lala",
     "email": "lala@gmail.com",
-    "age": 80,
-    "score": 400
+    "age": 100,
+    "score": 81
   }
 }
 
@@ -51,7 +51,7 @@ Content-Type: application/json
 GET http://localhost:8080/jobs
 
 ### Read job
-GET http://localhost:8080/jobs/31
+GET http://localhost:8080/jobs/43
 
-###Check deliveries
+### Check deliveries
 GET http://localhost:8080/deliveries

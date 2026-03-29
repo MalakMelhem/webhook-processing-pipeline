@@ -99,43 +99,35 @@ export async function getSubscribers(pipelineId:number){
     return result.rows;
 }
 export async function markDelivered(jobId: number,subscriberId: number) {
- const delivery = 'SELECT * FROM deliveries WHERE job_id = $1 and subscriber_id =$2';
- const deliveryResult = (await pool.query(delivery, [jobId, subscriberId])).rows[0];
- if(deliveryResult){
-    const attempts=(deliveryResult.attempts)+1;
-    const query = `UPDATE deliveries SET status = 'delivered', attempts =$1 WHERE job_id = $2 AND subscriber_id = $3 RETURNING *;`;
-    const result=await pool.query(query, [ attempts, jobId, subscriberId]);
-    return result.rows[0];
- }else{
-    const createdTime = new Date().toISOString();
-    const query ='INSERT INTO deliveries (job_id, subscriber_id, status, attempts, created_time) VALUES ($1,$2,$3,$4,$5)';
-    const values =[jobId, subscriberId,'delivered', 1, createdTime];
-    const result=await pool.query(query,values);
-    return result.rows[0];
- }
+ const query = `UPDATE deliveries SET status = 'delivered' WHERE job_id = $1 AND subscriber_id = $2 RETURNING *;`;
+ const result = await pool.query(query, [jobId, subscriberId]);
+  return result.rows[0];
 }
  export async function markFailed(jobId: number,subscriberId: number) {
- const delivery = 'SELECT * FROM deliveries WHERE job_id = $1 and subscriber_id =$2';
- const deliveryResult = (await pool.query(delivery, [jobId, subscriberId])).rows[0];
- if(deliveryResult){
-    const attempts=(deliveryResult.attempts)+1;
-    const query = `UPDATE deliveries SET status = 'failed', attempts =$1 WHERE job_id = $2 AND subscriber_id = $3 RETURNING *;`;
-    const result=await pool.query(query, [ attempts, jobId, subscriberId]);
-    return result.rows[0];
- }else{
-    const createdTime = new Date().toISOString();
-    const query ='INSERT INTO deliveries (job_id, subscriber_id, status, attempts, created_time) VALUES ($1,$2,$3,$4,$5)';
-    const values =[jobId, subscriberId,'failed', 1, createdTime];
-    const result=await pool.query(query,values);
-    return result.rows[0];
- }
-
+ const query = `UPDATE deliveries SET status = 'failed' WHERE job_id = $1 AND subscriber_id = $2 RETURNING *; `;
+ const result = await pool.query(query, [jobId, subscriberId]);
+  return result.rows[0];
 }
 export async function getDeliveries(){
     const query = `SELECT * FROM deliveries ;`;
     const result=await pool.query(query);
     return result.rows;
 }
+export async function deliveryAttempts(jobId: number, subscriberId: number) {
+  const updateQuery = `UPDATE deliveries SET attempts = attempts + 1 WHERE job_id = $1 AND subscriber_id = $2 RETURNING *; `;
+  const updateResult = await pool.query(updateQuery, [jobId, subscriberId]);
+
+  if (updateResult.rows.length > 0) {
+    return updateResult.rows[0];
+  }
+
+  const createdTime = new Date().toISOString();
+  const insertQuery = `INSERT INTO deliveries (job_id, subscriber_id, status, attempts, created_time) VALUES ($1, $2, $3, $4, $5) RETURNING *; `;
+
+  const insertResult = await pool.query(insertQuery, [jobId, subscriberId,'pending', 1, createdTime]);
+  return insertResult.rows[0];
+}
+
 
 
 
