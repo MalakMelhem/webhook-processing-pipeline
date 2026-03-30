@@ -14,7 +14,7 @@ export async function createPipeline(
     createdTime,
     JSON.stringify(actions),
   ];
-  return (await pool.query(query, values)).rows[0]; 
+  return (await pool.query(query, values)).rows[0];
 }
 export async function createSubscriber(
   pipelineId: string,
