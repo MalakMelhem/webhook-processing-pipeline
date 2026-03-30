@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15
-    platform: linux/amd64  
+    platform: linux/amd64
     container_name: webhook_db
     restart: always
     environment:
